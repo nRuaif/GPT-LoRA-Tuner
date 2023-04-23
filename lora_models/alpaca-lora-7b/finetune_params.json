@@ -1,6 +1,4 @@
 {
-  "micro_batch_size": 1,
-  "gradient_accumulation_steps": 1,
   "num_train_epochs": 10,
   "learning_rate": 0.0003,
   "cutoff_len": 512,

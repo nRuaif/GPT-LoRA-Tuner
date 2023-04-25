@@ -3,13 +3,11 @@ import os
 import time
 import json
 
-import torch
-import transformers
 from transformers import GenerationConfig
 
+from ..config import Config
 from ..globals import Global
 from ..models import get_model, get_tokenizer, get_device
-from ..lib.inference import generate
 from ..lib.csv_logger import CSVLogger
 from ..utils.data import (
     get_available_template_names,
@@ -101,7 +99,7 @@ def do_inference(
                 'generation_config': generation_config.to_dict(),
             })
 
-        if Global.ui_dev_mode:
+        if Config.ui_dev_mode:
             message = f"Hi, I’m currently in UI-development mode and do not have access to resources to process your request. However, this behavior is similar to what will actually happen, so you can try and see how it will work!\n\nBase model: {base_model_name}\nLoRA model: {lora_model_name}\n\nThe following is your prompt:\n\n{prompt}"
             print(message)
 
@@ -180,7 +178,7 @@ def do_inference(
             'stream_output': stream_output
         }
 
-        for (decoded_output, output, completed) in generate(**generation_args):
+        for (decoded_output, output, completed) in Global.inference_generate_fn(**generation_args):
             raw_output_str = str(output)
             response = prompter.get_response(decoded_output)
 
@@ -216,7 +214,7 @@ def do_inference(
 
         return
     except Exception as e:
-        raise gr.Error(e)
+        raise gr.Error(str(e))
 
 
 def handle_stop_generate():
@@ -318,7 +316,7 @@ def update_prompt_preview(prompt_template,
 
 
 def inference_ui():
-    flagging_dir = os.path.join(Global.data_dir, "flagging", "inference")
+    flagging_dir = os.path.join(Config.data_dir, "flagging", "inference")
     if not os.path.exists(flagging_dir):
         os.makedirs(flagging_dir)
 
@@ -383,7 +381,7 @@ def inference_ui():
     things_that_might_timeout = []
 
     with gr.Blocks() as inference_ui_blocks:
-        with gr.Row():
+        with gr.Row(elem_classes="disable_while_training"):
             with gr.Column(elem_id="inference_lora_model_group"):
                 model_prompt_template_message = gr.Markdown(
                     "", visible=False, elem_id="inference_lora_model_prompt_template_message")
@@ -404,7 +402,7 @@ def inference_ui():
             reload_selections_button.style(
                 full_width=False,
                 size="sm")
-        with gr.Row():
+        with gr.Row(elem_classes="disable_while_training"):
             with gr.Column():
                 with gr.Column(elem_id="inference_prompt_box"):
                     variable_0 = gr.Textbox(
@@ -558,9 +556,10 @@ def inference_ui():
                             elem_id="inference_inference_raw_output_accordion"
                     ) as raw_output_group:
                         inference_raw_output = gr.Code(
-                            label="Raw Output",
-                            show_label=False,
+                            # label="Raw Output",
+                            label="Tensor",
                             language="json",
+                            lines=8,
                             interactive=False,
                             elem_id="inference_raw_output")
 
@@ -897,5 +896,7 @@ def inference_ui():
           attributeFilter: ['rows'],
         });
       }, 100);
+
+      return [];
     }
     """)

@@ -2,6 +2,7 @@ import gradio as gr
 import time
 import json
 
+from ..config import Config
 from ..globals import Global
 from ..models import get_tokenizer
 
@@ -12,7 +13,7 @@ def handle_decode(encoded_tokens_json):
 
     try:
         encoded_tokens = json.loads(encoded_tokens_json)
-        if Global.ui_dev_mode:
+        if Config.ui_dev_mode:
             return f"Not actually decoding tokens in UI dev mode.", gr.Markdown.update("", visible=False)
         tokenizer = get_tokenizer(tokenizer_name)
         decoded_tokens = tokenizer.decode(encoded_tokens)
@@ -26,7 +27,7 @@ def handle_encode(decoded_tokens):
     tokenizer_name = Global.tokenizer_name or Global.base_model_name
 
     try:
-        if Global.ui_dev_mode:
+        if Config.ui_dev_mode:
             return f"[\"Not actually encoding tokens in UI dev mode.\"]", gr.Markdown.update("", visible=False)
         tokenizer = get_tokenizer(tokenizer_name)
         result = tokenizer(decoded_tokens)
@@ -40,11 +41,12 @@ def tokenizer_ui():
     things_that_might_timeout = []
 
     with gr.Blocks() as tokenizer_ui_blocks:
-        with gr.Row():
+        with gr.Row(elem_classes="disable_while_training"):
             with gr.Column():
                 encoded_tokens = gr.Code(
                     label="Encoded Tokens (JSON)",
                     language="json",
+                    lines=10,
                     value=sample_encoded_tokens_value,
                     elem_id="tokenizer_encoded_tokens_input_textbox")
                 decode_btn = gr.Button("Decode ➡️")
@@ -53,6 +55,7 @@ def tokenizer_ui():
             with gr.Column():
                 decoded_tokens = gr.Code(
                     label="Decoded Tokens",
+                    lines=10,
                     value=sample_decoded_text_value,
                     elem_id="tokenizer_decoded_text_input_textbox")
                 encode_btn = gr.Button("⬅️ Encode")
@@ -81,6 +84,7 @@ def tokenizer_ui():
 
     tokenizer_ui_blocks.load(_js="""
     function tokenizer_ui_blocks_js() {
+      return [];
     }
     """)
 
